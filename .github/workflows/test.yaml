@@ -2,6 +2,10 @@ name: 'Test oasdiff actions'
 on:
   pull_request:
   push:
+
+concurrency:
+  group: ${{ github.workflow }}${{ github.ref_name != github.event.repository.default_branch && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
 jobs:
   oasdiff_diff:
     runs-on: ubuntu-latest
@@ -27,52 +31,52 @@ jobs:
     runs-on: ubuntu-latest
     name: Test diff action with exclude-elements option
     steps:
-        - name: checkout
-          uses: actions/checkout@v4
-        - name: Running diff action with exclude-elements option
-          id: test_exclude_elements
-          uses: ./diff
-          with:
-            base: 'specs/base.yaml'
-            revision: 'specs/base-exclude-elements.yaml'
-            format: 'text'
-            exclude-elements: 'description,title,summary'
-        - name: Test diff action output
-          run: |
-            delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
-            output=$(cat <<-$delimiter
-            ${{ steps.test_exclude_elements.outputs.diff }}
-            $delimiter
-            )
-            if [ "$output" != "No changes" ]; then
-              echo "Expected output 'No changes' but got '$output'" >&2
-              exit 1
-            fi
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Running diff action with exclude-elements option
+        id: test_exclude_elements
+        uses: ./diff
+        with:
+          base: 'specs/base.yaml'
+          revision: 'specs/base-exclude-elements.yaml'
+          format: 'text'
+          exclude-elements: 'description,title,summary'
+      - name: Test diff action output
+        run: |
+          delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+          output=$(cat <<-$delimiter
+          ${{ steps.test_exclude_elements.outputs.diff }}
+          $delimiter
+          )
+          if [ "$output" != "No changes" ]; then
+            echo "Expected output 'No changes' but got '$output'" >&2
+            exit 1
+          fi
   oasdiff_diff_composed:
     runs-on: ubuntu-latest
     name: Test diff action with composed option
     steps:
-        - name: checkout
-          uses: actions/checkout@v4
-        - name: Running diff action with composed option
-          id: test_composed
-          uses: ./diff
-          with:
-            base: 'specs/glob/base/*.yaml'
-            revision: 'specs/glob/revision/*.yaml'
-            format: 'text'
-            composed: true
-        - name: Test diff action output
-          run: |
-            delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
-            output=$(cat <<-$delimiter
-            ${{ steps.test_composed.outputs.diff }}
-            $delimiter
-            )
-            if [[ ! "$output" =~ "Deleted Endpoints: 1" ]]; then
-              echo "Expected 'Deleted Endpoints: 1' to be modified in diff, instead got '$output'" >&2
-              exit 1
-            fi
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Running diff action with composed option
+        id: test_composed
+        uses: ./diff
+        with:
+          base: 'specs/glob/base/*.yaml'
+          revision: 'specs/glob/revision/*.yaml'
+          format: 'text'
+          composed: true
+      - name: Test diff action output
+        run: |
+          delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+          output=$(cat <<-$delimiter
+          ${{ steps.test_composed.outputs.diff }}
+          $delimiter
+          )
+          if [[ ! "$output" =~ "Deleted Endpoints: 1" ]]; then
+            echo "Expected 'Deleted Endpoints: 1' to be modified in diff, instead got '$output'" >&2
+            exit 1
+          fi
   oasdiff_breaking:
     runs-on: ubuntu-latest
     name: Test breaking changes
@@ -149,56 +153,56 @@ jobs:
             exit 1
           fi
   oasdiff_breaking_matching_delimiter_not_found:
-      runs-on: ubuntu-latest
-      name: Test breaking action with petsotre to validate no error of unable to process file command 'output' successfully and invalid value and matching delimiter not found
-      env:
-        OASDIFF_ACTION_TEST_EXPECTED_OUTPUT: "9 changes: 6 error, 3 warning, 0 info"
-      steps:
-        - name: checkout
-          uses: actions/checkout@v4
-        - name: Running breaking action with petsotre to validate no error of unable to process file command 'output' successfully and invalid value and matching delimiter not found
-          id: test_breaking_changes_matching_delimiter_not_found
-          uses: ./breaking
-          with:
-            base: 'specs/petstore-base.yaml'
-            revision: 'specs/petstore-revision.yaml'
-        - name: Test breaking changes action output
-          run: |
-            delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
-            output=$(cat <<-$delimiter
-            ${{ steps.test_breaking_changes_matching_delimiter_not_found.outputs.breaking }}
-            $delimiter
-            )
-            if [ "$output" != "$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT" ]; then
-              echo "Expected output '$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT' but got '$output'" >&2
-              exit 1
-            fi
+    runs-on: ubuntu-latest
+    name: Test breaking action with petsotre to validate no error of unable to process file command 'output' successfully and invalid value and matching delimiter not found
+    env:
+      OASDIFF_ACTION_TEST_EXPECTED_OUTPUT: "9 changes: 6 error, 3 warning, 0 info"
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Running breaking action with petsotre to validate no error of unable to process file command 'output' successfully and invalid value and matching delimiter not found
+        id: test_breaking_changes_matching_delimiter_not_found
+        uses: ./breaking
+        with:
+          base: 'specs/petstore-base.yaml'
+          revision: 'specs/petstore-revision.yaml'
+      - name: Test breaking changes action output
+        run: |
+          delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+          output=$(cat <<-$delimiter
+          ${{ steps.test_breaking_changes_matching_delimiter_not_found.outputs.breaking }}
+          $delimiter
+          )
+          if [ "$output" != "$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT" ]; then
+            echo "Expected output '$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT' but got '$output'" >&2
+            exit 1
+          fi
   oasdiff_breaking_composed:
     runs-on: ubuntu-latest
     name: Test breaking action with composed option
     env:
-        OASDIFF_ACTION_TEST_EXPECTED_OUTPUT: "1 changes: 1 error, 0 warning, 0 info"
+      OASDIFF_ACTION_TEST_EXPECTED_OUTPUT: "1 changes: 1 error, 0 warning, 0 info"
     steps:
-        - name: checkout
-          uses: actions/checkout@v4
-        - name: Running breaking action with composed option
-          id: test_breaking_composed
-          uses: ./breaking
-          with:
-            base: 'specs/glob/base/*.yaml'
-            revision: 'specs/glob/revision/*.yaml'
-            composed: true
-        - name: Test breaking action output
-          run: |
-            delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
-            output=$(cat <<-$delimiter
-            ${{ steps.test_breaking_composed.outputs.breaking }}
-            $delimiter
-            )
-            if [[ ! "$output" =~ "$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT" ]]; then
-              echo "Expected '$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT', instead got '$output'" >&2
-              exit 1
-            fi
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Running breaking action with composed option
+        id: test_breaking_composed
+        uses: ./breaking
+        with:
+          base: 'specs/glob/base/*.yaml'
+          revision: 'specs/glob/revision/*.yaml'
+          composed: true
+      - name: Test breaking action output
+        run: |
+          delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+          output=$(cat <<-$delimiter
+          ${{ steps.test_breaking_composed.outputs.breaking }}
+          $delimiter
+          )
+          if [[ ! "$output" =~ "$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT" ]]; then
+            echo "Expected '$OASDIFF_ACTION_TEST_EXPECTED_OUTPUT', instead got '$output'" >&2
+            exit 1
+          fi
   oasdiff_breaking_deprecation:
     runs-on: ubuntu-latest
     name: Test breaking changes with deprecation
@@ -256,24 +260,23 @@ jobs:
     runs-on: ubuntu-latest
     name: Test changelog action with composed option
     steps:
-        - name: checkout
-          uses: actions/checkout@v4
-        - name: Running changelog action with composed option
-          id: test_changelog_composed
-          uses: ./changelog
-          with:
-            base: 'specs/glob/base/*.yaml'
-            revision: 'specs/glob/revision/*.yaml'
-            composed: true
-        - name: Test changelog action output
-          run: |
-            delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
-            output=$(cat <<-$delimiter
-            ${{ steps.test_changelog_composed.outputs.changelog }}
-            $delimiter
-            )
-            if [[ ! "$output" =~ "1 changes: 1 error, 0 warning, 0 info" ]]; then
-              echo "Expected '1 changes: 1 error, 0 warning, 0 info', instead got '$output'" >&2
-              exit 1
-            fi
-
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Running changelog action with composed option
+        id: test_changelog_composed
+        uses: ./changelog
+        with:
+          base: 'specs/glob/base/*.yaml'
+          revision: 'specs/glob/revision/*.yaml'
+          composed: true
+      - name: Test changelog action output
+        run: |
+          delimiter=$(cat /proc/sys/kernel/random/uuid | tr -d '-')
+          output=$(cat <<-$delimiter
+          ${{ steps.test_changelog_composed.outputs.changelog }}
+          $delimiter
+          )
+          if [[ ! "$output" =~ "1 changes: 1 error, 0 warning, 0 info" ]]; then
+            echo "Expected '1 changes: 1 error, 0 warning, 0 info', instead got '$output'" >&2
+            exit 1
+          fi
